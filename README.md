@@ -21,7 +21,7 @@
 <img src="/image/linux.jpeg" width="100" height="100"/>         
 
 ## 다이어그램
-<img src="주소입력" width="300" height="300"/>
+<img src="/image/dia.png" width="300" height="300"/>
 
 ## 실행화면 📺
 | 실행화면1 | 실행화면2 |
