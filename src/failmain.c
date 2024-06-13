@@ -8,6 +8,7 @@
 #include<sys/ioctl.h>    		// 하드웨어의 제어와 상태 정보 
 #include<sys/stat.h>     		// 파일의 상태에 대한 정보
 #include<stdbool.h>
+#include<pthread.h>
 
 // Target System
 #define fnd "/dev/fnd"			// 7-Segment FND 
@@ -19,6 +20,8 @@
 
 int turn(int*);
 void roll_dice(int*);
+void* dot_fnd_thread(void* arg);
+// void set_roll_cnt(char);
 void set_lcd_bot(int);
 void set_turn_score(int);
 void calc_score(int*, int*);
@@ -30,6 +33,10 @@ int leds = 0;
 int dot_mtx = 0;
 int clcds = 0;
 int fnds = 0;
+
+// 뮤텍스
+pthread_mutex_t dot_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t fnd_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 unsigned char fnd_map[15] = {
     0b11000000, // 0
@@ -48,7 +55,8 @@ unsigned char fnd_map[15] = {
     0b10100001, // d
     0b11111111 //출력 없음
     };
-unsigned char dot_buffer[8] = {0x00,};
+unsigned char dot_buffer[8];
+unsigned char fnd_buffer[4];
 char clcd_top[17] = { " P1 000  P2 000 " };
 char clcd_bot[18][17] = {
     "      Ones      ",
@@ -78,6 +86,9 @@ int main() {
     if((tactsw = open( tact, O_RDWR )) < 0){printf("tact open error\n"); exit(1);}
     if((dipsw = open( dip, O_RDWR )) < 0){printf("dip open error\n"); exit(1);}
 
+    pthread_t dot_thread;
+    pthread_create(&dot_thread, NULL, dot_fnd_thread, NULL);
+
     // 합산 스코어
     int score[2] = {0, 0};
     //사용 족보 바이너리로 바꾸어서 플래그로 사용(0~4095) 사용시 1
@@ -87,6 +98,9 @@ int main() {
 
     for(r = 0; r < 12; r++) {
         for(t = 0; t < 2; t++) {
+            memset(dot_buffer, 0x00, sizeof(dot_buffer)); // 도트 버퍼 초기화
+            memset(fnd_buffer, 0xff, sizeof(fnd_buffer)); // fnd 버퍼 초기화
+
             // P0 turn Roll
             set_lcd_bot(12 + t);
             score[t] += turn(&score_category[t]);
@@ -110,18 +124,45 @@ int main() {
     else {
         set_lcd_bot(16);
     }
+
+    // 스레드 종료
+    pthread_cancel(dot_thread);
+    pthread_join(dot_thread, NULL);
+    // 뮤텍스 제거
+    pthread_mutex_destroy(&dot_mutex);
+    pthread_mutex_destroy(&fnd_mutex);
     
     close(tactsw);
     close(dipsw);
     return 0;
 }
 
+void* dot_fnd_thread(void* arg) {
+    while (1) {
+        dot_mtx = open(dot, O_RDWR);
+        pthread_mutex_lock(&dot_mutex);
+        write(dot_mtx, dot_buffer, sizeof(dot_buffer));
+        pthread_mutex_unlock(&dot_mutex);
+        usleep(300000); // 0.3 초
+        close(dot_mtx);
+
+        fnds = open(fnd, O_RDWR);
+        pthread_mutex_lock(&fnd_mutex);
+        write(fnds, &fnd_buffer, sizeof(fnd_buffer));
+        pthread_mutex_unlock(&fnd_mutex);
+        usleep(300000); // 0.3 초
+        close(fnds); 
+    }
+    return NULL;
+}
+
 int turn(int* category) {
+
     int score[12] = {0,};
     int roll_count = 0;
     unsigned char dip_input = 0;
     unsigned char tact_input = 0;
-    unsigned char before_input = 13;
+    unsigned char before_input = -1;
     int dice[5] = {0,};
 
     while(1) {
@@ -130,7 +171,6 @@ int turn(int* category) {
             read(dipsw, &dip_input, sizeof(dip_input));
             if(dip_input & 128) {
                 roll_dice(dice);
-                // 요기에 스레드 넣을 수 있을듯?
                 calc_score(score, dice);
                 set_lcd_bot(17);
                 roll_count++;
@@ -195,6 +235,7 @@ void roll_dice(int* dice) {
             dice[i] = rand() % 6 + 1;
         }
     }
+    pthread_mutex_lock(&dot_mutex);
     // 열
     for(i = 0; i < 5; i++) { 
         // 행
@@ -207,39 +248,26 @@ void roll_dice(int* dice) {
             }
         }
     }
-    
-
-    if((dot_mtx = open(dot, O_RDWR)) < 0 ) {printf("dot open error\n"); exit(1);}
-    write(dot_mtx, dot_buffer, sizeof(dot_buffer));
-    sleep(4);
-    close(dot_mtx);
+    pthread_mutex_unlock(&dot_mutex);
 }
 
-void set_turn_score(int score) {
-    //턴당 점수 50 이상 불가능 USEd에 사용
-    unsigned char fnd_buffer[4];
-    if(score>50) {
-        fnd_buffer[0] = fnd_map[10];
-        fnd_buffer[1] = fnd_map[11];
-        fnd_buffer[2] = fnd_map[12];
-        fnd_buffer[3] = fnd_map[13];
-    }
-    else {
-        int tens = (score / 10) % 10;
-        int ones = score % 10;
-        fnd_buffer[0] = fnd_map[14];
-        fnd_buffer[1] = fnd_map[tens];
-        fnd_buffer[2] = fnd_map[ones];
-        fnd_buffer[3] = fnd_map[14];
-    }
+// void set_roll_cnt(char roll_cnt) {
+//     dot_buffer[0] &= 0x00;
+//     switch (roll_cnt) {
+//         case 3:
+//             dot_buffer[0] |= 0x07; // 0000 0111
+//             break;
+//         case 2:
+//             dot_buffer[0] |= 0x03; // 0000 0011
+//             break;
+//         case 1:
+//             dot_buffer[0] |= 0x01; // 0000 0001
+//             break;
+//     }
 
-    printf("[fnd] %d\n",score);
-    if((fnds = open(fnd, O_RDWR)) < 0 ) {printf("fnd open error\n"); exit(1);}
-    write(fnds, &fnd_buffer, sizeof(fnd_buffer));
-    sleep(2);
-    close(fnds);
-    return;
-}
+//     write(dot_mtx,&dot_buffer, sizeof(dot_buffer));
+//     return;
+// }
 
 void set_lcd_bot(int line) {
     char buffer[32];  // 32글자를 위한 버퍼
@@ -254,6 +282,28 @@ void set_lcd_bot(int line) {
     return;
 }
 
+void set_turn_score(int score) {
+    //턴당 점수 50 이상 불가능 USEd에 사용
+    pthread_mutex_lock(&fnd_mutex);
+    if(score>50) {
+        fnd_buffer[0] = fnd_map[10];
+        fnd_buffer[1] = fnd_map[11];
+        fnd_buffer[2] = fnd_map[12];
+        fnd_buffer[3] = fnd_map[13];
+    }
+    else {
+        int tens = (score / 10) % 10;
+        int ones = score % 10;
+        fnd_buffer[0] = fnd_map[14];
+        fnd_buffer[1] = fnd_map[tens];
+        fnd_buffer[2] = fnd_map[ones];
+        fnd_buffer[3] = fnd_map[14];
+    }
+    pthread_mutex_unlock(&fnd_mutex);
+
+    printf("[fnd] %d\n",score);
+    return;
+}
 
 void calc_score(int* score, int* dice) {
     int counts[7] = {0};

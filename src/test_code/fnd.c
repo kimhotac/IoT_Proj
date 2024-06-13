@@ -5,23 +5,27 @@
 
 #define fnd "/dev/fnd"
 
-int main() { 
+unsigned char fnd_data[4] = {
+	0b11000001, // U
+	0b10010010, // S
+	0b10000110, // E
+	0b10100001, // d;
+};
+
+int show() { 
 	int fnd_d; 
-	unsigned char fnd_data[4];
 
  	if((fnd_d = open(fnd,O_RDWR)) < 0) { 
 		perror("open"); 
 		exit(1); 
 	}
-
-	fnd_data[0] = 0xC0; 
-	fnd_data[1] = 0xC0; 
-	fnd_data[2] = 0xC0; 
-	fnd_data[3] = 0xC0;
 	
 	write(fnd_d,fnd_data,sizeof(fnd_data));
 	
-	sleep(5);
 
 	return 0;
+}
+int main(){
+	show();
+    usleep(100000); // 0.01초
 }
