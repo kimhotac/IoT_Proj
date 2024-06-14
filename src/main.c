@@ -13,24 +13,24 @@
 #define fnd "/dev/fnd"			// 7-Segment FND 
 #define dot "/dev/dot"			// Dot Matrix
 #define tact "/dev/tactsw"    	// Tact Switch
-#define led "/dev/led"			// LED 
 #define dip "/dev/dipsw"		// Dip Switch
 #define clcd "/dev/clcd"		// Character LCD
 
 int turn(int*);
 void roll_dice(int*);
-void set_lcd_bot(int);
+void set_dot(void);
+void set_lcd(int, int);
 void set_turn_score(int);
 void calc_score(int*, int*);
 
 // 파일 디스크립터
 int tactsw = 0;
 int dipsw = 0;
-int leds = 0;
 int dot_mtx = 0;
 int clcds = 0;
 int fnds = 0;
 
+unsigned char dot_buffer[8] = {0x00,};
 unsigned char fnd_map[15] = {
     0b11000000, // 0
     0b11111001, // 1
@@ -48,28 +48,35 @@ unsigned char fnd_map[15] = {
     0b10100001, // d
     0b11111111 //출력 없음
     };
-unsigned char dot_buffer[8] = {0x00,};
-char clcd_top[17] = { " P1 000  P2 000 " };
-char clcd_bot[18][17] = {
-    "      Ones      ",
-    "      Twos      ",
-    "     Threes     ",
-    "      Fours     ",
-    "      Fives     ",
-    "      Sixes     ",
-    "   Full House   ",
-    " Four of a Kind ",
-    "Little Straight ",
-    "  Big Straight  ",
-    "     Choice     ",
-    "      Yacht     ",
-    "  P1 turn Roll  ",
-    "  P2 turn Roll  ",
-    "    P1 win!!    ",
-    "    P2 win!!    ",
-    "      draw      ",
-    "  pick or roll  "
-};
+char clcd_map[27][17] = {
+    "      Ones      ", // 0
+    "      Twos      ", // 1
+    "     Threes     ", // 2
+    "      Fours     ", // 3
+    "      Fives     ", // 4
+    "      Sixes     ", // 5
+    "   Full House   ", // 6
+    " Four of a Kind ", // 7
+    "Little Straight ", // 8
+    "  Big Straight  ", // 9
+    "     Choice     ", // 10
+    "      Yacht     ", // 11
+    "  P1 turn Roll  ", // 12
+    "  P2 turn Roll  ", // 13
+    "    P1 win!!    ", // 14
+    "    P2 win!!    ", // 15
+    "      draw      ", // 16
+    "  pick or roll  ", // 17
+    " P1 000  P2 000 ", // 18
+    "     Waiting    ", // 19
+    "    Roll Dice   ", // 20
+    "Player Turn End ", // 21
+    "                ", // 22
+    "  Real Choose?  ", // 23
+    "   0 0 0 0 0    ", // 24
+    "Dip Switch Clear", // 25
+    "      pick      ", // 26
+    };
 
 int main() {
     srand(time(NULL));
@@ -85,57 +92,80 @@ int main() {
     int r; // round : 12라운드
     int t; // 0: p1턴/ 1 : p2턴
 
-    for(r = 0; r < 12; r++) {
+    for(r = 0; r < 2; r++) {
         for(t = 0; t < 2; t++) {
-            // P0 turn Roll
-            set_lcd_bot(12 + t);
+            // P0 turn Roll -> ok
+            set_lcd(18, 12 + t);
             score[t] += turn(&score_category[t]);
             
-            // clcd 윗줄 수정
-            clcd_top[4 + t * 8] = (score[t] / 100) + '0';
-            clcd_top[5 + t * 8] = (score[t] / 10 % 10) + '0';
-            clcd_top[6 + t * 8] = (score[t] % 10) + '0';
+            // clcd 점수 수정
+            clcd_map[18][4 + t * 8] = (score[t] / 100) + '0';
+            clcd_map[18][5 + t * 8] = (score[t] / 10 % 10) + '0';
+            clcd_map[18][6 + t * 8] = (score[t] % 10) + '0';
+
+            // 턴 종료 -> ok
+            set_lcd(18, 21);
+            printf("IS_FOR");
+            sleep(4);
         }
     }
 
+        //1 주사위 홀드 되는거, 주사위 3번 다굴리는거
+        //2 tact 족보 보여주고 결정하기
+        //3 dip 내리라고 경고
+        //4 Used 보여주기
+        //5 이김 
+
+    close(tactsw);
+    close(dipsw);
+
     //p1 win
     if(score[0] > score[1]) {
-        set_lcd_bot(14);
+        set_lcd(22, 14);
     }
     //p2 win
     else if(score[1] > score[0]) {
-        set_lcd_bot(15);
+        set_lcd(22, 15);
     }
     //draw
     else {
-        set_lcd_bot(16);
+        set_lcd(22, 16);
     }
-    
-    close(tactsw);
-    close(dipsw);
     return 0;
 }
 
 int turn(int* category) {
+    int dice[5] = {0,};
     int score[12] = {0,};
     int roll_count = 0;
+    unsigned char before_input = 13;
     unsigned char dip_input = 0;
     unsigned char tact_input = 0;
-    unsigned char before_input = 13;
-    int dice[5] = {0,};
 
     while(1) {
-        if(roll_count < 3){
+        if(roll_count < 3){       
             usleep(10000);
+
             read(dipsw, &dip_input, sizeof(dip_input));
             if(dip_input & 128) {
                 roll_dice(dice);
-                // 요기에 스레드 넣을 수 있을듯?
+                set_dot();
                 calc_score(score, dice);
-                set_lcd_bot(17);
+                if(roll_count == 2) set_lcd(24, 26);
+                else set_lcd(24, 17);
+                printf("TACT_128.");
                 roll_count++;
-                dip_input = 0;
                 continue;
+            }
+            else if(roll_count == 0 && dip_input & 63) {
+                // 첫 roll에서 hold가 올라가있으면 경고
+                set_lcd(22, 25);
+                memset(dot_buffer, 0xFF, sizeof(dot_buffer));
+                if((dot_mtx = open(dot, O_RDWR)) < 0) {printf("dot open error\n"); exit(1);}
+                write(dot_mtx, dot_buffer, sizeof(dot_buffer));
+                sleep(1);
+                close(dot_mtx);
+                memset(dot_buffer, 0x00, sizeof(dot_buffer));
             }
         }
         
@@ -154,7 +184,7 @@ int turn(int* category) {
                 //tact 눌렀을 때 이벤트 처리
                 // 점수 출력 부분
                 if(tact_input != before_input) {
-                    set_lcd_bot(tact_input-1);
+                    set_lcd(23, tact_input - 1);
                     printf("[dot] %d %d %d %d %d\n",dice[0],dice[1],dice[2],dice[3],dice[4]);
                     
                     if((1 << (tact_input - 1)) & *category) {
@@ -169,7 +199,7 @@ int turn(int* category) {
                 else {
                     //TODO category에 사용한 족보 넣기
                     *category |= 1 << (tact_input - 1);
-                    return score[tact_input];
+                    return score[tact_input-1];
                 }
                 break;
             }
@@ -189,10 +219,11 @@ void roll_dice(int* dice) {
             break;
         }
     }
-    
+    //4,6,8,10,12
     for(i = 0; i < 5; i++) {
         if(!(hold & (1 << i))){
             dice[i] = rand() % 6 + 1;
+            clcd_map[24][3 + 2 * i] = dice[i] + '0';
         }
     }
     // 열
@@ -207,17 +238,24 @@ void roll_dice(int* dice) {
             }
         }
     }
-    
+    return;
+}
 
+void set_dot() {
+    set_lcd(24, 19);
+    printf("ROLL_DICE_METHOD");
     if((dot_mtx = open(dot, O_RDWR)) < 0 ) {printf("dot open error\n"); exit(1);}
     write(dot_mtx, dot_buffer, sizeof(dot_buffer));
+    // dip
     sleep(4);
     close(dot_mtx);
+    return;
 }
 
 void set_turn_score(int score) {
     //턴당 점수 50 이상 불가능 USEd에 사용
     unsigned char fnd_buffer[4];
+
     if(score>50) {
         fnd_buffer[0] = fnd_map[10];
         fnd_buffer[1] = fnd_map[11];
@@ -234,16 +272,21 @@ void set_turn_score(int score) {
     }
 
     printf("[fnd] %d\n",score);
+
     if((fnds = open(fnd, O_RDWR)) < 0 ) {printf("fnd open error\n"); exit(1);}
+
     write(fnds, &fnd_buffer, sizeof(fnd_buffer));
+    
+    // tact
     sleep(2);
+
     close(fnds);
     return;
 }
 
-void set_lcd_bot(int line) {
-    char buffer[32];  // 32글자를 위한 버퍼
-    snprintf(buffer, 32, "%s%s", clcd_top, clcd_bot[line]);
+void set_lcd(int up, int down) {
+    char buffer[33];  // 32글자를 위한 버퍼
+    snprintf(buffer, 33, "%s%s", clcd_map[up], clcd_map[down]);
 
     printf("[CLCD] %s\n",buffer);
 
@@ -253,7 +296,6 @@ void set_lcd_bot(int line) {
 
     return;
 }
-
 
 void calc_score(int* score, int* dice) {
     int counts[7] = {0};
