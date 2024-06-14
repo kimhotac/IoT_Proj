@@ -34,10 +34,10 @@ https://namu.wiki/w/%EC%9A%94%ED%8A%B8(%EA%B2%8C%EC%9E%84)
 ## 실행화면 📺
 | 실행화면1(CLCD) | 실행화면2(TACT) |
 | :-------------------------------------------: | :------------: |
-| <img width="329" src="/image/CLCD.png"/> | <img width="329" src="/image/tact.gif"/> |  
+| <img width="329" height="300" src="/image/CLCD.png"/> | <img width="329" height="300" src="/image/tact.gif"/> |  
 | 실행화면3(DOT1) | 실행화면4(DOT2) |  
-| <img width="329" src="/image/DOT1.png"/> | <img width="329" src="/image/DOT1.png"/> |
+| <img width="329" height="300" src="/image/DOT1.png"/> | <img width="329" height="300" src="/image/DOT1.png"/> |
 | 실행화면5(DIP_HOLD) | 실행화면6(DIP_ROLL) |  
-| <img width="329" src="/image/dip_hold.gif"/> | <img width="329" src="/image/dip_roll.gif"/> |
+| <img width="329" height="300" src="/image/dip_hold.gif"/> | <img width="329" height="300" src="/image/dip_roll.gif"/> |
 | 실행화면7(FND_SCORE) |   실행화면8(FND_USEd) |  
-| <img width="329" src="/image/FND1.png"/> | <img width="329" src="/image/FND2.png"/> |
+| <img width="329" height="300" src="/image/FND1.png"/> | <img width="329" height="300" src="/image/FND2.png"/> |
