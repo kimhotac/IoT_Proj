@@ -25,7 +25,6 @@ https://namu.wiki/w/%EC%9A%94%ED%8A%B8(%EA%B2%8C%EC%9E%84)
 
 ## 기술스택 & 개발환경
 <img src="/image/c.png" width="100" height="100"/>
-
 <img src="/image/linux.jpeg" width="100" height="100"/>         
 
 ## 다이어그램
