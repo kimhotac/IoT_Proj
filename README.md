@@ -31,7 +31,7 @@ https://namu.wiki/w/%EC%9A%94%ED%8A%B8(%EA%B2%8C%EC%9E%84)
 ## 다이어그램
 <img src="/image/dia.png" width="300" height="300"/>
 
-## 시현영상
+## 시연영상
 https://youtu.be/WEZicodjqPA
 
 ## 실행화면 📺
