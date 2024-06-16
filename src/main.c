@@ -92,7 +92,7 @@ int main() {
     int r; // round : 12라운드
     int t; // 0: p1턴/ 1 : p2턴
 
-    for(r = 0; r < 2; r++) {
+    for(r = 0; r < 12; r++) {
         for(t = 0; t < 2; t++) {
             // P0 turn Roll -> ok
             set_lcd(18, 12 + t);
