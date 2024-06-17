@@ -147,17 +147,7 @@ int turn(int* category) {
             usleep(10000);
 
             read(dipsw, &dip_input, sizeof(dip_input));
-            if(dip_input & 128) {
-                roll_dice(dice);
-                set_dot();
-                calc_score(score, dice);
-                if(roll_count == 2) set_lcd(24, 26);
-                else set_lcd(24, 17);
-                printf("TACT_128.");
-                roll_count++;
-                continue;
-            }
-            else if(roll_count == 0 && dip_input & 63) {
+            if(roll_count == 0 && dip_input & 63) {
                 // 첫 roll에서 hold가 올라가있으면 경고
                 set_lcd(22, 25);
                 memset(dot_buffer, 0xFF, sizeof(dot_buffer));
@@ -166,7 +156,27 @@ int turn(int* category) {
                 sleep(1);
                 close(dot_mtx);
                 memset(dot_buffer, 0x00, sizeof(dot_buffer));
+                set_lcd(18, 17);
             }
+            else if(dip_input & 64) {
+                set_dot();
+                if(roll_count == 2) set_lcd(24, 26);
+                else set_lcd(24, 17);
+                before_input = 13;
+                continue;
+            }
+            else if(dip_input & 128) {
+                roll_dice(dice);
+                set_dot();
+                calc_score(score, dice);
+                if(roll_count == 2) set_lcd(24, 26);
+                else set_lcd(24, 17);
+                printf("TACT_128.");
+                roll_count++;
+                before_input = 13;
+                continue;
+            }
+            
         }
         
         // 주사위 안굴렸으면 dip만 읽어야함
