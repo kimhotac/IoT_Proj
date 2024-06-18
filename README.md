@@ -42,3 +42,11 @@ https://youtu.be/WEZicodjqPA
 | <img width="329" height="300" src="/image/dip_hold.gif"/> | <img width="329" height="300" src="/image/dip_roll.gif"/> |
 | 실행화면7(FND_SCORE) |   실행화면8(FND_USEd) |  
 | <img width="329" height="300" src="/image/FND1.png"/> | <img width="329" height="300" src="/image/FND2.png"/> |
+
+## 출처
+https://syki66.github.io/blog/2020/06/15/H-smart4412TKU.html,%20
+https://takethat.tistory.com/30,%20
+https://github.com/2MinJoo/Embedded_rhythm_game,%20
+https://github.com/2022HKNUiotprogrammingTeam1,%20
+https://github.com/jinwoo1225/SnakeGameWithSmart4412,%20
+https://github.com/SenyMin/MDS_MiniProject
