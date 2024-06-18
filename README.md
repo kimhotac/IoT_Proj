@@ -30,7 +30,11 @@ https://namu.wiki/w/%EC%9A%94%ED%8A%B8(%EA%B2%8C%EC%9E%84)
 <img src="/image/dia.png" width="300" height="300"/>
 
 ## 시연영상
-https://youtu.be/WEZicodjqPA
+- 턴축소          : https://youtu.be/WEZicodjqPA
+
+- 풀게임 하이라이트  : https://www.youtube.com/watch?v=EbLRbuu_-Yo
+
+- 간단한 조작법     : https://www.youtube.com/watch?v=mFKZfqcjKt0
 
 ## 실행화면 📺
 | 실행화면1(CLCD) | 실행화면2(TACT) |
